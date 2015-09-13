@@ -1,0 +1,38 @@
+---
+title: "Bridge Dataset"
+author: "Christina Taylor"
+date: "Sept 12, 2015"
+output: html_document
+---
+### Get web data
+```{r message=FALSE}
+library(RCurl)
+v = readLines("http://archive.ics.uci.edu/ml/machine-learning-databases/bridges/bridges.data.version2") #start from weblink
+summary(v) #character vector of length 108
+```
+### Convert webpage to dataframe
+```{r}
+v<-strsplit(v,",") #split into list
+df<-data.frame(matrix(unlist(v), nrow=108, byrow=T)) #unlist and convert to dataframe
+tail(df)
+```
+### Subset columns of interest and assign descriptive names
+```{r}
+br<-subset(df[,c(1:3,7:11)])
+colnames(br)<-c("id","river","location","lanes","clear_g","t_d","material","span")
+head(br)
+```
+### Some basic data cleasing
+```{r}
+br[br == '?']<-NA #set missing values to NA
+levels(br$span)[levels(br$span)=="?"]<-"missing" #rename a factor level
+str(br$span)
+br$lanes<-as.numeric(br$lanes) #prepare numbers for analysis
+summary(br$lanes)
+```
+### Get rows of interest: Bridges with long spans and many lanes
+```{r}
+bigbr <- subset(br, br$span == "LONG" & br$lanes >= 4)
+bigbr
+```
+
