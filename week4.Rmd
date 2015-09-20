@@ -1,0 +1,82 @@
+---
+title: "Week 4"
+author: "Christina"
+date: "September 16, 2015"
+output: html_document
+---
+
+### Chapter 8: Regular Expressions
+####4. 
+(a)  
+[0-9]: match any single digit  
++: match one or more times  
+\\$ match dollar sign  
+Example: 
+```{r}
+library(stringr)
+obj <- "1$ 12$  1234$"
+unlist(str_extract_all (obj, "[0-9]+\\$"))
+```
+
+(b)  
+"\\b" match empty string at either edge (boundary) of a word  
+[a-z]: match any single lower case ascii character  
+{1,4}: match [a-z] at least 1 time but no more than 4 times  
+Example:   
+```{r}
+obj <- "a bc def ghij klmno"
+unlist(str_extract_all (obj, "\\b[a-z]{1,4}\\b"))
+```
+
+(c) "." match any single character  
+"*" repeats the "." 0 or more times  
+"?" is a qualifier that matches the preceding pattern 0 times or once  
+"\\.txt$" matches the literal ".txt" at the end of line  
+Example:  
+```{r}
+obj <- ".txt b 52.txt d&e.txt"
+unlist(str_extract_all (obj, ".*?\\.txt$"))
+```
+
+(d) This expression matches single digits exactly twice; followed by "/", followed by single digits exactly twice, followed by "/", followed by single digits exactly four times  
+Example:   
+```{r}
+obj <- "09/16/2015 99/99/1999  1234/56/78"
+unlist(str_extract_all (obj, "\\d{2}/\\d{2}/\\d{4}"))
+#Note: This is not a good regex for dates. [01]\d[- /.][0-3]\d[- /.]\d\d is better, though not perfect.
+```
+
+(e) This expression matches character "<", followed by (.+?) grouping: match any single charcter, one or more times, and the preceding patten is optional.  
+This is followed by character ">", followed by any single character, one or more times, optional.  
+This is followed by "<", followed by the same pattern as enclosed in the parenthesis before, then "/>".  
+Example: 
+```{r}
+obj <- "<b>Week 4</b> <b>2015</b> <title></title> <></>" 
+unlist(str_extract_all (obj, "<(.+?)>.+?</\\1>")) #Note: The tag cannot be empty.
+```
+
+####5.  
+[:digit:]{1,}[$]  
+```{r}
+obj <- "1$ 12$  1234$"
+unlist(str_extract_all (obj, "[:digit:]{1,}[$]"))
+```
+
+####6.
+(a)
+```{r}
+mail <- "chunkylover53[at]aol[dot]com"
+mail <- sub("[at]", "@", mail, fixed=TRUE) 
+email <- sub("[dot]", ".", mail, fixed=TRUE) 
+email
+```
+(b)  
+"[:digit:]" will extract a single digit. To extract the digits we need to match one or more times:  
+```{r}
+unlist(str_extract_all(email, "[:digit:]+"))
+```
+(c)  
+"\\D" will extract non-digits. The correct predifined symbol is \\d, matched one or more times.
+```{r}
+unlist(str_extract_all(email, "\\d+"))
+```
