@@ -1,0 +1,80 @@
+---
+title: "Project 1"
+author: "Christina Taylor"
+date: "Sept 20, 2015"
+output: html_document
+---
+### Read data from Github
+```{r message=FALSE}
+library("RCurl")
+url <- "https://raw.githubusercontent.com/christinataylor/IS/master/tournamentinfo.txt"
+setInternet2(TRUE) 
+download.file(url, destfile="./info.txt")
+v<-readLines("info.txt")
+v<-v[5:196]
+summary(v) #character vector of length 192
+```
+### Create data frames   
+```{r message=FALSE}
+i<-1:length(v)
+v1<-v[i%%3==1] #separately handle data based on line number; ignore 3rd line
+v2<-v[i%%3==2]
+l1<-strsplit(v1,"\\|")
+l2<-strsplit(v2,"\\|") #split pipe delimited values
+trim <- function (x) gsub("^\\s+|\\s+$", "", x) #trim leading and trailing spaces
+df1 <- data.frame(matrix(trim(unlist(l1)), nrow=64, byrow=T),stringsAsFactors = FALSE)
+tail(df1)
+df2 <- data.frame(matrix(trim(unlist(l2)), nrow=64, byrow=T), stringsAsFactors = FALSE)
+head(df2)
+```
+### Transform pre-rating data in df2  
+```{r message=FALSE}
+pattern<-"R:\\s{1,2}\\d{3,4}"
+m2 <- regexpr(pattern, df2$X2)
+rank <- regmatches(df2$X2, m2) #extract R:, 4 digits or 1 space followed by 3 digits
+df2$X2<-trim(sapply(strsplit(rank, ":"), "[[", 2)) #split and keep only digits via index
+tail(df2)
+```
+### Extract opponent ids in df1  
+```{r message=FALSE}
+findid <- function(x){ #extract ids at the end
+    pattern<-"\\d+$"
+    m1 <- regexpr(pattern, x)
+    id <- rep(NA, length(x)) #prevent regmatches drop non-matches in vector
+    id[m1!=-1]<- regmatches(x, m1) 
+    return(id)
+}
+df1[,4:10]<-do.call(cbind,lapply(df1[,4:10],findid))
+tail(df1)
+#extract R:, 4 digits or 1 space followed by 3 digits
+```
+### Bind data and rename columns  
+```{r message=FALSE}
+info <- cbind(df1[,1:2], df2[,1], as.numeric(df1[,3]), as.numeric(df2[,2]), df1[,4:10])
+colnames(info) <- c("id","name","state","pts","p_rating","r1","r2","r3","r4","r5","r6","r7")
+head(info)
+```
+
+### Find opponent ratings  
+```{r message=FALSE}
+findavg <- function(id)
+{
+    ratings <- info[id,6:12]
+    ratings <- Filter(function(x)!all(is.na(x)), ratings) #remove empty
+    library("sqldf")
+    sql <- paste("select p_rating from info where id in (", paste(ratings, collapse = ","), ")") #generate sql statement
+    total <- sqldf(sql) #covert result to dataframe
+    return (round(mean(total$p_rating))) #find average
+}
+```
+Sample calculations for players 1 and 62: 
+```{r message=FALSE}
+findavg(1)
+findavg(62)
+```
+
+### Iterate through the list of players and obtainn the fianl results  
+```{r message=FALSE}
+avg_opprating<-sapply(id<-1:64,findavg)
+cbind(info[1:5], avg_opprating) 
+```
