@@ -1,0 +1,66 @@
+---
+title: "Week 6 Assignment"
+author: "Christina"
+date: "Oct 3, 2015"
+output: html_document
+---
+
+### Airline Delay Analysis  
+#### Data transformation with tidyr and dplyr  
+```{r message=FALSE}
+#load data
+setwd('C:/Users/Christina/Documents/GitHub/IS')
+df<-read.csv("airline2.csv", na.strings = "")
+data<-df[rowSums(is.na(df))!=7, ]
+names(data)[1:2]<-c('airline','status')
+library('zoo')
+data$airline<-na.locf(data$airline)
+
+#transform wide to long format 
+library(tidyr)
+dflong <- data %>% gather(airport, number, -airline, -status)
+library(dplyr)
+#high lever statistics
+delayed<-select(filter(dflong, status == 'DELAYED'),-status)
+arrange(delayed, airline,desc(number))
+#average number of delays by airline
+summarise(group_by(delayed, airline),airports = n(),avg = mean(number))
+sum<-summarise(group_by(dflong, airline, status),airports = n(),total = sum(number))
+#total delay rate
+stats<-sum %>% group_by(airline) %>% mutate(pct=(100*total)/sum(total))
+select(filter(stats, status=='DELAYED'),-status, -airports)
+```
+**Alaska appears to have less number of delayed flights, but overall higher delay rate.**  
+
+### What happens at each airport?
+```{r}
+#calculate percentage of delays at each airport
+airports<-filter(dflong %>% group_by(airline, airport) %>% mutate(pct=(100*number)/sum(number)), status == 'DELAYED')
+```
+**Barplot of delays by airline:**  
+```{r, message=FALSE, echo=FALSE}
+library(ggplot2)
+library(ggthemes)
+g2<-ggplot(airports, aes(x=airline,y=pct, fill=airline))+geom_bar(position="dodge", stat = "identity") + facet_wrap(~airport)
+g2<-g2+labs(title="Delays at each airport", x="Airline", y="Delay Rate (%)"）
+g2+theme_gdocs()
+```
+
+** It appears that at every airport, Alaska is less likely to be delayed. Recall that overall, Alaska has a highter delay rate! How is this possible?**  
+
+### Is airport a factoring variable?  
+**Are some airports notorious for congestion?** 
+```{r, message=FALSE}
+arrange(summarise(group_by(delayed, airport),total = sum(number)),desc(total))
+```
+
+**Phoenix and Seattle have large volumes of delayed flights.**  
+
+```{r, message=FALSE, echo=FALSE}
+g5<-ggplot(delayed, aes(x=airport,y=number))
+g5<-g5+geom_point(aes(color=airline))
+g5<-g5+labs(title="Delay at Airports", x="Airport", y="Num of Delays", color="Airline")
+g5+theme_gdocs()
+```
+  
+**AM West has a lower delayed rate overall, because it performed fairly well in Phonenix - about 75% of its total flights are on time.**  
