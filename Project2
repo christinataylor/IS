@@ -1,0 +1,99 @@
+---
+title: "Project 2"
+author: "Christina Taylor"
+date: "Oct 10, 2015"
+output: html_document
+---
+### Crime and Population Analysis
+
+#### Data Preparation
+```{r message=FALSE}
+raw<-read.csv("crime.csv", skip = 3, header = TRUE, na.strings = "")
+sub<-raw[10:33, c(1:3,8)]
+#fill group value
+library('zoo')
+sub[1]<-na.locf(sub[1]) 
+#trim leading and trailing spaces; remove "," from numbers
+trim <- function (x) gsub("^\\s+|\\s+$|,", "", x) 
+df <- data.frame(sapply(sub, trim))
+#create id/pk for each group
+dflong <- cbind(rep(1:8, each=3), df) 
+names(dflong) <- c("group.id","group","variable","violent.crime","property.crime")
+head(dflong)
+#conversion between long and wide format
+library(tidyr)
+v<-cbind(dflong[1:4] %>% 
+  #unite(key2, violent.crime, murder, sep = "_") %>% 
+  spread(variable, violent.crime), rep("violent.crime",8))
+names(v)[3:6]<-c("Yr12", "Yr13", "change", "crime")
+m<-cbind(dflong[c(1:3,5)] %>% 
+  spread(variable, property.crime), rep("property.crime",8))
+names(m)[3:6]<-names(v)[3:6]
+dfwide<-rbind(v,m)
+#convert factor to numeric for analysis
+number <- function(x) {as.numeric(levels(x))[x]}
+dfwide[3:4] <- data.frame(sapply(dfwide[3:4],number))
+head(dfwide)
+```
+
+#### Plot
+```{r, message=FALSE, echo=FALSE}
+library(ggplot2)
+library(ggthemes)
+g2<-ggplot(dfwide, aes(x=group.id))+geom_line(aes(y=Yr12,color="Yr12"))+geom_line(aes(y=Yr13, color="Yr13"))+facet_wrap(~crime)
+g2+theme_gdocs()+labs(title="Crimes & Population Group", x="Population Group", y="Number of Crimes", color="Year")
+```
+
+### Personal Care and County Analysis
+#### Data Wrangling
+```{r, message=FALSE}
+#read data and escape quotes
+raw2 <- read.csv("care.csv", header = TRUE, quote = "\"", na.strings = "")
+ lst <- strsplit(as.character(raw2[,9]), "[^0-9]+") 
+#fill unequal length and create daily hour calculations
+ indx <- lengths(lst) 
+ df <- as.data.frame(do.call(rbind,lapply(lst, `length<-`, max(indx))))
+ res <- as.data.frame(sapply(df[,2:3],number))
+ aide <- cbind(res, res[1]/res[2])
+#bind data to original dataframe
+ colnames(aide) <- c("Aide_Hours_Week", "Aide_Days", "Aide_Hours_Day")
+ data <- cbind(raw2[,1:8], aide)
+#prepare for numeric analysis 
+ library("stringr")
+ num <- function(x) {as.numeric(str_replace(x,",",""))}
+ data$Auth_Units <- num(data$Auth_Units)
+ head(data)
+```
+
+#### Plot
+```{r, message=FALSE, echo=FALSE}
+d <- qplot(County, Auth_Units, data=data, alpha = I(1 / 10))
+stat_sum_single <- function(fun, geom="point", ...) {
+  stat_summary(fun.y=fun, color = "red", geom=geom, size = 3, ...)
+}
+d + stat_sum_single(mean) + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+b <- qplot(County,Aide_Hours_Week,data=data,geom="boxplot")
+b + theme(axis.text.x = element_text(angle = 90, hjust = 1)) + ylim(0, 168)
+#If I had more time, I would enforce data validation - weekly hours should not exceed 24*7
+```
+
+### International Trade Sample Data
+#### Data Preparation
+```{r, message=FALSE}
+#read and cleanse
+raw3<-read.csv("trade.csv", header = TRUE, skip = 1, na.strings = "")
+dat<-raw3[rowSums(is.na(raw3))!=8, ]
+dat[1]<-na.locf(dat[1])
+dat[,3:8]<-data.frame(sapply(dat[3:8],num))
+#calculate trade surplus
+dat <- cbind(dat, dat[3]-dat[4], dat[5]-dat[6], dat[7]-dat[8])
+ts <- dat[,c(1,2,9:11)]
+names(ts) <- c("month","category","S13","S14","S15")
+tsl <- ts %>% gather(year, surplus, S13:S15)
+tsl
+```
+#### Plot
+```{r, message=FALSE, echo=FALSE}
+g<-ggplot(tsl, aes(x=factor(month), y=surplus, fill=year))+geom_bar(position="dodge", stat = "identity") + facet_wrap(~category) + scale_x_discrete(limits=c("Janurary","February","March","April"))
+g+theme_gdocs()+labs(title="Trade Surplus", x="month", y="surplus", color="year")
+```
