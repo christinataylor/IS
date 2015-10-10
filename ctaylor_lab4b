@@ -1,0 +1,43 @@
+---
+title: "Foundations for statistical inference - Confidence intervals"
+output:
+  word_document: default
+  pdf_document: default
+  html_document:
+    css: ./lab.css
+    highlight: pygments
+    theme: cerulean
+---
+
+## Sampling from Ames, Iowa
+
+### Plotting 95% intervals
+```{r message=FALSE}
+load("../Lab4b/more/ames.RData")
+population <- ames$Gr.Liv.Area
+samp_mean <- rep(NA, 50)
+samp_sd <- rep(NA, 50)
+n <- 100
+for(i in 1:50){
+  samp <- sample(population, n) 
+  samp_mean[i] <- mean(samp)    
+  samp_sd[i] <- sd(samp)        
+}
+lower_vector <- samp_mean - 1.96 * samp_sd / sqrt(n) 
+upper_vector <- samp_mean + 1.96 * samp_sd / sqrt(n)
+plot_ci(lower_vector, upper_vector, mean(population))
+```
+
+96 out of 100 intervals include the true mean. The proportion is close but not exactly the same to the confidence level. We are 95% certain that the intervals will contain the true mean, which implies 5 out of 100 times they will not. We cannot guarantee what will happen with one particular sample. 
+
+### A different confidence interval: 90%
+
+```{r message=FALSE}
+lower_vector <- samp_mean - 1.65 * samp_sd / sqrt(n) 
+upper_vector <- samp_mean + 1.65 * samp_sd / sqrt(n)
+plot_ci(lower_vector, upper_vector, mean(population))
+```
+
+The appropriate critical value, accoridng to the Z table, is 1.65.  
+
+The percentage of intervals that contain the true mean is smaller. As the intervals narrow, we can be less certain. 
