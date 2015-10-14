@@ -1,0 +1,25 @@
+{"bookshelf":[
+    {
+		"title":"R for Everyone", 
+		"by":"Jared Lander", 
+		"year":"2013", 
+		"price":"25.99" 
+	},
+    {
+		"title":"How Not to be Wrong", 
+		"by":"Jordan Ellenberg", 
+		"year":"2014", 
+		"price":"12.99" 
+	},
+	{
+		"title":"Relic", 
+		"by":[
+			{
+				"author":"Douglas Preston",
+				"author":"Lincoln Child"
+			}
+		],
+		"year":"2003", 
+		"price":"8.99" 
+	},
+]}
