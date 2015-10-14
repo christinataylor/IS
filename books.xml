@@ -1,0 +1,21 @@
+<bookshelf>
+  <book category="school">
+    <title>R for Everyone</title>
+    <author>Jared Lander</author>
+    <year>2013</year>
+    <price>25.99</price>
+  </book>
+  <book category="work">
+    <title>How Not to Be Wrong</title>
+    <author>Jordan Ellenberg</author>
+    <year>2014</year>
+    <price>12.99</price>
+  </book>
+  <book category="fun">
+    <title>Relic</title>
+    <author>Douglas Preston</author>
+	<author>Lincoln Child</author>
+    <year>2003</year>
+    <price>8.99</price>
+  </book>  
+</bookshelf>
