@@ -11,10 +11,10 @@
     <year>2014</year>
     <price>12.99</price>
   </book>
-  <book >
+  <book>
     <title lang="en">Relic</title>
     <author>Douglas Preston</author>
-	<author>Lincoln Child</author>
+    <author>Lincoln Child</author>
     <year>2003</year>
     <price>8.99</price>
   </book>  
