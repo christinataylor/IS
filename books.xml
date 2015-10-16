@@ -2,9 +2,7 @@
 
 <bookshelf>
   <book>
-    <title lang="en">
-		R for Everyone
-	</title>
+    <title lang="en">R for Everyone</title>
     <author>Jared Lander</author>
     <year>2013</year>
     <price>25.99</price>
