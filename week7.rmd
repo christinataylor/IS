@@ -1,0 +1,54 @@
+---
+title: "Week 7 Assignment"
+author: "Christina"
+date: "Oct 13, 2015"
+output: html_document
+---
+
+### Working with HTML, XML, and JSON 
+```{r message=FALSE}
+library(RCurl)
+library(XML)
+#parse HTML
+html_file = "https://raw.githubusercontent.com/christinataylor/IS/master/books.html"
+webpage <- getURL(html_file)
+webpage <- readLines(tc <- textConnection(webpage)); close(tc)
+pagetree <- htmlTreeParse(webpage, error=function(...){}, useInternalNodes = TRUE)
+
+#extract contents and header
+th <- xpathSApply(pagetree, "//table[@id='bookshelf']/tr/th", xmlValue)
+td <- xpathSApply(pagetree, "//table[@id='bookshelf']/tr/td", xmlValue)
+p <- xpathSApply(pagetree, "//table[@id='bookshelf']/tr/td/p", xmlValue)
+content <- as.data.frame(matrix(td, ncol = 4, byrow = TRUE), stringsAsFactors = FALSE)
+names(content) <- th
+#write multi-value author field - would do programmatically next time
+content$Author[[3]] <- paste(p[1],p[2], sep = ";")
+#final result
+content
+```
+
+```{r message=FALSE}
+library(XML)
+library(RCurl)
+library(plyr)
+xml_file <- "https://raw.githubusercontent.com/christinataylor/IS/master/books.xml"
+#parse XML
+xData <- getURL(xml_file)
+doc <- xmlParse(xData)
+#ignore attributes
+ldply(xmlToList(doc, addAttributes = FALSE), data.frame)
+```
+
+```{r message=FALSE}
+
+#library("jsonlite")
+#json_data <- fromJSON(json_file, simplifyDataFrame = TRUE)
+#The above method will not go through the lowest level in the JSON file
+library("RJSONIO")
+json_file <- "https://raw.githubusercontent.com/christinataylor/IS/master/books.json"
+#recurse through list of list
+json_data <- fromJSON(json_file)
+rows <- unlist(json_data, recursive = TRUE, use.names = TRUE)
+#just a laundry list now - need more transformation for downstream analysis
+as.data.frame(rows)
+```
