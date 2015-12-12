@@ -1,0 +1,51 @@
+Random Forest Most Important Predictor
+SCRIPT_STR('
+Revenue <- .arg1
+Project <- .arg2
+Volume <- .arg3
+Ticket <- .arg4
+Opportunity <- .arg5
+df <- data.frame(cbind(Revenue, Project, Volume, Ticket, Opportunity))
+df[is.na(df)] <- 0
+library(randomForest)
+results <- randomForest(Revenue ~. , data=df, importance=TRUE)
+imp = importance(results)
+imp1 = imp[,1]
+names(sort(imp1, decreasing = TRUE))[1]
+',
+SUM([Recognized Revenue]),[view_sf_acct_engagement].[# Engagements 2015],SUM([view_client_partner_ads].[Total Impressions (2015)]), [view_zd_acct_support (fwmetrics)].[# Tickets (2015)], [view_sales_acv_plan].[# Opportunity (2015)])
+
+Forecasting & Residuals Calculation
+SCRIPT_REAL('
+Revenue <- .arg1
+Project <- .arg2
+Volume <- .arg3
+Ticket <- .arg4
+Opportunity <- .arg5
+df <- data.frame(cbind(Revenue, Project, Volume, Ticket, Opportunity))
+df[is.na(df)] <- 0
+m <- lm(Revenue ~ Volume + Project, data = df[1:3])
+m$residuals
+',
+SUM([Recognized Revenue]),[view_sf_acct_engagement].[# Engagements 2015],SUM([view_client_partner_ads].[Total Impressions (2015)]), [view_zd_acct_support (fwmetrics)].[# Tickets (2015)], [view_sales_acv_plan].[# Opportunity (2015)])
+
+Coefficient Calculation
+SCRIPT_REAL('
+Revenue <- .arg1
+Project <- .arg2
+Volume <- .arg3
+Ticket <- .arg4
+Opportunity <- .arg5
+df <- data.frame(cbind(Revenue, Project, Volume, Ticket, Opportunity))
+df[is.na(df)] <- 0
+m <- lm(Revenue ~ Volume + Project, data = df[1:3])
+summary(m)$adj.r.squared
+',
+SUM([Recognized Revenue]),[view_sf_acct_engagement].[# Engagements 2015],SUM([view_client_partner_ads].[Total Impressions (2015)]), [view_zd_acct_support (fwmetrics)].[# Tickets (2015)], [view_sales_acv_plan].[# Opportunity (2015)])
+
+K-means Clustering for Segmentation
+script_int("
+set.seed(1000)
+m <- cbind(.arg1, .arg2)
+kmeans(m, .arg3[1])$cluster
+", sum([Recognized Revenue]), [Variable], [Number of Clusters])
