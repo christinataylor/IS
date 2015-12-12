@@ -1,0 +1,115 @@
+from simple_salesforce import Salesforce
+import csv
+import sys,datetime,time
+import string
+import os
+
+import mysql.connector
+from mysql.connector.constants import ClientFlag
+from sfdc_config import SFUSER,SFPW,SF_TOKEN,DBUSER,DBPW,DBHOST,DBNAME,program_directory,PROGRAM_FIELD_TYPE_MAP,PROGRAM_FIELD_DICT,PROGRAM_ORDERED_FIELDS
+
+directory = program_directory
+FIELD_DICT = PROGRAM_FIELD_DICT
+FIELD_TYPE_MAP = PROGRAM_FIELD_TYPE_MAP
+ORDERED_FIELDS = PROGRAM_ORDERED_FIELDS
+
+the_date = time.strftime("%d-%m-%Y")
+file_out = directory+'program%s.csv' % (the_date)
+csv_out = open(file_out, 'wb')
+
+multivalue_file_out = directory+'program_multivalue%s.csv' % (the_date)
+multivalue_csv_out = open(multivalue_file_out, 'wb')
+
+csv_handler = csv.writer(csv_out, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+multivalue_csv_handler= csv.writer(multivalue_csv_out, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+
+sf = Salesforce(password=SFPW, username=SFUSER, security_token=SF_TOKEN)
+
+
+#note that the client_flag allows the mysql module to access files on the computer
+cnx = mysql.connector.connect(user=DBUSER, password=DBPW,
+                              host=DBHOST,
+                              database=DBNAME, client_flags=[ClientFlag.LOCAL_FILES])
+cursor = cnx.cursor()
+
+sosl = "SELECT %s FROM Services_Program__c" % ','.join(FIELD_DICT.values()) 
+
+p = sf.query_all(sosl)
+#for all records in the returned sql
+index = 1
+for record in p['records']:	
+	row = []
+	for a in ORDERED_FIELDS:
+		code = FIELD_DICT[a]
+		path = code.split(".")
+		#print a
+		element = record
+		for p in path:
+			#print element,p
+			try:
+				element = element[p]
+			except:
+				element = ""
+				pass
+		code = FIELD_DICT[a]
+		if not record[code]:
+			row.append("NULL")
+		else: 
+			x = string.strip(str(record[code]))
+			if x in ("none", "null", ""):
+				print "empty"
+				row.append("NULL")
+			#fix datetime format
+			elif FIELD_TYPE_MAP[a] == "datetime":
+				#some dates have len11, others 10
+				row.append(x[0:10])
+			else:
+				row.append(record[code])
+				if (FIELD_TYPE_MAP[a]=="multivalue_string"):
+					#SF returns 'NULL%' for empty value on this field
+					values = string.split(record[code],";")
+					for value in values:
+						multivalue_csv_handler.writerow(["sf_program",record["Id"],"program_SE",value])
+	csv_handler.writerow(row)
+	index = index+1
+
+#must close the file before reading it with the MySQL load
+csv_out.close()
+multivalue_csv_out.close()
+
+error_flag = "False"
+#WRITE TO DB
+try:
+	sql = """SET FOREIGN_KEY_CHECKS=0;"""
+	cursor.execute(sql)
+	
+	sql = """TRUNCATE sf_program;"""
+	cursor.execute(sql)
+	
+	sql = """
+		LOAD DATA LOCAL INFILE '{}'
+		REPLACE INTO TABLE sf_program
+		FIELDS TERMINATED BY ',' 
+		OPTIONALLY ENCLOSED BY '"'
+		LINES TERMINATED BY "\\r\\n";
+		"""
+	cursor.execute(sql.format(file_out))
+	
+	sql = """delete from sf_multivalue where object_name = 'sf_program';"""
+	cursor.execute(sql)
+		
+	sql = """LOAD DATA LOCAL INFILE '{}'
+			INTO TABLE sf_multivalue
+			FIELDS TERMINATED BY ',' 
+			OPTIONALLY ENCLOSED BY '"'
+			LINES TERMINATED BY '\\r\\n';
+			"""
+
+	cursor.execute(sql.format(multivalue_file_out))
+			
+except Exception as err:
+	print("Something went wrong: {}".format(err))
+	error_flag = "True";
+# only execute code if no error
+if error_flag != "True":
+	cnx.commit()
